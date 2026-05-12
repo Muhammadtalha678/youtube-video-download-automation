@@ -17,7 +17,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_YOUTUBE_DOWNLOAD_VIDEO_TOKEN }}
         run: |
           # 1. Backend folder mein jayein
-          cd youtube-video-download-automation/backend
+          cd backend
           
           # 2. Temporary git setup karein deployment ke liye
           git init
