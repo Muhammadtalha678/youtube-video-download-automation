@@ -60,7 +60,7 @@ def search_channel_videos(upload_id:str,past_days:int):
                     break
             for v in playlist_response["items"]:
                 if v['snippet']['publishedAt'] >= months_ago:
-                    print(v)
+                    # print(v)
                     videos_list.append({
                         "title":v["snippet"]["title"],
                         "id":v["snippet"]["resourceId"]["videoId"],
