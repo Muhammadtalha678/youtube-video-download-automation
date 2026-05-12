@@ -1,0 +1,30 @@
+name: Sync to Hugging Face Hub
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Push Subdirectory to HF
+        env:
+          HF_TOKEN: ${{ secrets.HF_YOUTUBE_DOWNLOAD_VIDEO_TOKEN }}
+        run: |
+          # 1. Backend folder mein jayein
+          cd youtube-video-download-automation/backend
+          
+          # 2. Temporary git setup karein deployment ke liye
+          git init
+          git config user.name "Muhammadtalha678"
+          git config user.email "muhammadtalha0110@gmail.com"
+          git add .
+          git commit -m "Deploy backend from subfolder"
+          
+          # 3. HF Space par push karein (Username aur Space name check karlein)
+          git push --force https://Muhammad51059579:$HF_TOKEN@huggingface.co/spaces/Muhammad51059579/youtube-video-download master:main
