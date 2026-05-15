@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { Loader2, Calendar } from "lucide-react";
+import { apiUrls } from "@/lib/constant";
 
 export interface Video {
   title: string;
@@ -33,7 +34,8 @@ export function VideoSearch({ uploadsId, onResults }: Props) {
     setLoading(true);
     try {
       const { data } = await axios.get<Video[]>(
-        `http://192.168.0.119:8000/api/channel_youtube_videos`,
+        `${apiUrls.video_search}`,
+        // `http://192.168.0.119:8000/api/channel_youtube_videos`,
         { params: { upload_id: uploadsId, past_days: Number(days) } }
       );
       onResults(data || []);

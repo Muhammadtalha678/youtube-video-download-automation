@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { Search, Loader2 } from "lucide-react";
+import { apiUrls } from "@/lib/constant";
 
 export interface Channel {
   channel_id: string;
@@ -29,10 +30,11 @@ export function ChannelSearch({ onFound }: Props) {
     setLoading(true);
     try {
       const { data } = await axios.get<Channel>(
-        `http://192.168.0.119:8000/api/search-youtube-channel`,
+        `${apiUrls.channel_search}`,
+        // ,``http://192.168.0.119:8000/api/search-youtube-channel`,
         { params: { channel_name: name.trim() } }
       );
-      console.log(data);
+      // console.log(data);
       
       if (!data?.channel_id) {
         toast.error("Channel not found");

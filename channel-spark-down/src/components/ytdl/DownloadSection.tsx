@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { Download, FolderOpen, Loader2 } from "lucide-react";
+import { apiUrls } from "@/lib/constant";
 
 interface Props {
   selectedIds: string[];
@@ -48,7 +49,8 @@ export function DownloadSection({ selectedIds }: Props) {
 
     try {
       const { data } = await axios.post(
-        "http://192.168.0.119:8000/api/download-youtube-video",
+        `${apiUrls.dowload_video}`,
+        // "http://192.168.0.119:8000/api/download-youtube-video",
         {
           video_ids: selectedIds,
           download_path: normalized,
