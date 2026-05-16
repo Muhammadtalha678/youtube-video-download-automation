@@ -9,59 +9,109 @@ interface Props {
 }
 
 export function DownloadSection({ selectedIds }: Props) {
-  const [path, setPath] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const folderRef = useRef<HTMLInputElement>(null);
+  const [folderName, setFolderName] =
+    useState("");
 
-  const browse = () => folderRef.current?.click();
+  const [folderHandle, setFolderHandle] =
+    useState<FileSystemDirectoryHandle | null>(
+      null
+    );
+  
+    const chooseFolder = async () => {
 
-  const onFolderPicked = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      // Browser cannot return absolute path; use folder name as hint
-      const rel = (files[0] as any).webkitRelativePath as string;
-      const folder = rel.split("/")[0];
-      setPath((prev) => prev || folder);
-      
-      toast("Browser returns folder name only — please type the full path.", {
-        icon: "ℹ️",
-      });
+    try {
+
+      const handle =
+        await window.showDirectoryPicker();
+
+      setFolderHandle(handle);
+      setFolderName(handle.name);
+
+      toast.success(
+        `Folder selected: ${handle.name}`
+      );
+
+    } catch (err) {
+
+      console.log(err);
+
+      toast.error("Folder selection cancelled");
     }
   };
-  
   const submit = async () => {
     if (selectedIds.length === 0) {
       toast.error("Please select at least one video");
       return;
     }
-    if (!path.trim()) {
-      setError("Download path is required");
-      toast.error("Please enter download folder path");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    
-    // Convert single backslashes to escaped backslashes for JSON
-    const normalized = path.replace(/\\/g, "\\\\");
-    console.log(normalized);
+     if (!folderHandle) {
 
-    try {
-      const { data } = await axios.post(
-        `${apiUrls.dowload_video}`,
-        // "http://192.168.0.119:8000/api/download-youtube-video",
-        {
-          video_ids: selectedIds,
-          download_path: normalized,
-        }
-      );
-      const failed = (data?.results || []).filter((r: any) => !r.success).length;
-      if (failed > 0) {
-        toast.error(`${failed} video(s) failed to download`);
-      } else {
-        toast.success(data?.message || "Download started successfully");
+       toast.error("Please select folder");
+       
+       return;
       }
+      setError("");
+      setLoading(true);
+      
+      // Convert single backslashes to escaped backslashes for JSON
+      // const normalized = path.replace(/\\/g, "\\\\");
+      // console.log(normalized);
+      
+      try {
+        
+        // console.log("selectedIds",selectedIds);
+        for (const id of selectedIds) {
+          const response = await axios.get(
+            `${apiUrls.download}/${id}`,
+            // "http://192.168.0.119:8000/api/download-youtube-video",
+            {
+              responseType:"blob",
+              timeout:1000*60*10 //10 mins
+            }
+          );
+          
+          console.log("response",response);
+          // console.log("data",response);
+          const blob = new Blob(
+            [response.data],
+            {type:"video/mp4"}
+          )
+          // console.log("blob",blob);
+          const url = window.URL.createObjectURL(blob);
+          
+          // Extract filename from headers
+          const disposition =
+          response.headers["content-disposition"];
+          
+          let filename = `${id}.mp4`;
+          
+          if (disposition) {
+            
+            const match =
+            disposition.match(/filename="?(.+)"?/);
+            
+            if (match?.[1]) {
+              filename = match[1];
+            }
+          }
+          // save directly to selected folder
+          const fileHandle =
+          await folderHandle.getFileHandle(
+            filename,
+            { create: true }
+          );
+          // console.log(fileHandle);
+           const writable =
+          await fileHandle.createWritable();
+
+        await writable.write(response.data);
+
+        await writable.close();
+
+        toast.success(`${filename} downloaded`);
+      }
+      
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || "Download failed");
     } finally {
@@ -72,17 +122,20 @@ export function DownloadSection({ selectedIds }: Props) {
   return (
     <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-foreground">
+        {/* <label className="block text-sm font-medium text-foreground">
           Download Folder Path
+        </label> */}
+        <label className="block text-sm font-medium">
+          Selected Folder
         </label>
         <div className="flex flex-col sm:flex-row gap-3">
-          <input
+          {/* <input
             type="text"
             value={path}
             onChange={(e) => setPath(e.target.value)}
             placeholder="D:\videos"
             className="flex-1 rounded-xl border border-input bg-background px-4 py-3 text-sm shadow-sm outline-none transition focus:ring-2 focus:ring-ring"
-          />
+          /> */}
           {/* <button
             type="button"
             onClick={browse}
@@ -101,6 +154,24 @@ export function DownloadSection({ selectedIds }: Props) {
             className="hidden"
             onChange={onFolderPicked}
           /> */}
+            
+            <input
+            type="text"
+            value={folderName}
+            readOnly
+            placeholder="No folder selected"
+            className="flex-1 rounded-xl border border-input bg-background px-4 py-3 text-sm"
+          />
+
+          <button
+            type="button"
+            onClick={chooseFolder}
+            className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-3 text-sm font-medium hover:bg-accent"
+          >
+            <FolderOpen className="h-4 w-4" />
+            Browse
+          </button>
+
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>

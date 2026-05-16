@@ -112,7 +112,45 @@ def search_channel_videos(upload_id:str,past_days:int):
         
     return videos_list
    # ... other code above ...
-def download_videos(video_ids: list[str], folder_path: str):
+
+def download_videos(video_ids: list[str]):
+    download_dir = "downloads"
+    os.makedirs(download_dir, exist_ok=True)
+    ydl_opts = {
+        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        'outtmpl': os.path.join(download_dir, '%(title)s.%(ext)s'),
+        'ignoreerrors': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['web', 'web_embedded', 'android'],
+            }
+        },
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        }
+    }
+    results = []
+    with YoutubeDL(ydl_opts) as ydl:
+        for vid_id in video_ids:
+            clean_id = vid_id.strip()
+            if not clean_id: 
+                continue 
+            
+            try:
+                # ADDED THE MISSING /watch?v= HERE
+                video_url = f"https://youtube.com/watch?v={clean_id}"
+                info = ydl.extract_info(url=video_url,download=True)
+                file_path = ydl.prepare_filename(info)
+                print(file_path)
+                # Pass the corrected URL to download
+                # status = ydl.download([video_url])
+                results.append({"id": clean_id, "file_path":file_path,"success": status == 0})
+            except Exception as e:
+                results.append({"id": clean_id, "success": False, "error": str(e)})
+                
+    return {"message": "Process completed", "results": results}
+
+def download_videoss(video_ids: list[str], folder_path: str):
     target_dir = os.path.abspath(folder_path)
     
     if os.path.isfile(target_dir):
