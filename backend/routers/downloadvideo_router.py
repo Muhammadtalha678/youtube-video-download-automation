@@ -20,15 +20,17 @@ def download_videos(video_id:str):
         ydl_opts = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
             'outtmpl': os.path.join(download_dir, '%(title)s.%(ext)s'),
-            'ignoreerrors': True,
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['web', 'web_embedded', 'android'],
-                }
-            },
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            }
+            # 'ignoreerrors': True,
+            # 'extractor_args': {
+            #     'youtube': {
+            #         'player_client': ['web', 'web_embedded', 'android'],
+            #     }
+            # },
+            # 'http_headers': {
+            #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            # }
+            "quiet": True,
+            "noplaylist": True,
         }
         results = []
         with YoutubeDL(ydl_opts) as ydl:
