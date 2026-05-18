@@ -1,15 +1,15 @@
-# install python
+# Stage 1: Temporarily pull the official Node image to grab the binary
+FROM node:20-slim AS node_provider
+
+# Stage 2: Build your actual application container
 FROM python:3.12-slim
 
-# Install Node.js cleanly for yt-dlp challenge solving
-RUN apt-get update && apt-get install -y \
-    curl \
-    gnupg \
-    && mkdir -p /etc/apt/keyrings \
-    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
-    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://nodesource.com nodistro main" | tee /etc/apt/sources.list.d/nodesource.list \
-    && apt-get update && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+# Copy Node.js directly from the official node image into your python path
+COPY --from=node_provider /usr/local/bin/node /usr/local/bin/node
+COPY --from=node_provider /usr/local/lib/node_modules /usr/local/lib/node_modules
+
+# Ensure basic SSL certificates are available for downloading
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # install uv and copy specific file to run uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -20,12 +20,10 @@ WORKDIR /app
 # now copy all my project files into /app
 COPY . /app
 
-# Expose PORT
-# EXPOSE 8000
-
+# Run uv sync
 RUN uv sync --frozen --no-cache
 
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Run the application.
-CMD ["uv", "run","uvicorn", "main:app", "--host", "0.0.0.0","--port", "7860"]
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
