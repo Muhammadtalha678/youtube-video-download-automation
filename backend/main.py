@@ -14,7 +14,7 @@ app.add_middleware(
         allow_credentials=True,
         allow_methods=["*"],  # Allows all methods
         allow_headers=["*"],  # Allows all headers
-        expose_headers=["Content-Disposition"]
+        expose_headers=["Content-Disposition","Content-Length"]
 )
 app.include_router(router=ChatRouter)
 app.include_router(router=SearchChannelRouter)
