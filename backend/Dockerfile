@@ -1,6 +1,13 @@
 # install python
 FROM python:3.12-slim
 
+# Install Node.js so yt-dlp can solve JavaScript challenges
+RUN apt-get update && apt-get install -y \
+    curl \
+    && curl -fsSL https://nodesource.com | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
 # install uv and copy specific file to run uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
