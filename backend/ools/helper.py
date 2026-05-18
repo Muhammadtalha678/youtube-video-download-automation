@@ -24,7 +24,6 @@ def get_cookie_file() -> str | None:
         print(f"Cookie decode error: {e}")
         return None
 
-
 def build_ydl_opts(cookie_path: str | None) -> dict:
     opts = {
         "quiet": True,
@@ -33,8 +32,8 @@ def build_ydl_opts(cookie_path: str | None) -> dict:
         "retries": 10,
         "socket_timeout": 30,
         
-        # REQUIRED BY THE NEW EJS ENGINE FOR NODE.JS:
-        "js_runtimes": ["node"],
+        # FIX: Format as a nested config dictionary instead of a list
+        "js_runtimes": {"node": {}},
         
         "extractor_args": {
             "youtube": {
@@ -56,4 +55,3 @@ def build_ydl_opts(cookie_path: str | None) -> dict:
         }
 
     return opts
-
