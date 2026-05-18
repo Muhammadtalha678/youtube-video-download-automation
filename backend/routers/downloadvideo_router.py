@@ -2,7 +2,6 @@ import asyncio
 import shlex
 import threading
 import unicodedata
-import ssl
 
 from fastapi import APIRouter,HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
@@ -27,6 +26,61 @@ def download_video(req:DownloadRequest):
     
 @router.get("/download/{video_id}")
 async def stream_video(video_id: str):
+    # cookie_path = get_cookie_file()
+    # Step 1: resolve the URL (same as before)
+#     ydl_opts = {
+#         "quiet": True,
+#         "skip_download": True,
+#         "extractor_args": {"youtube": {"player_client": ["android"]}},
+#     }
+
+#     with YoutubeDL(ydl_opts) as ydl:
+#         info = ydl.extract_info(
+#             f"https://youtube.com/watch?v={video_id.strip()}",
+#             download=False
+#         )
+#         formats = info.get("formats", [])
+#         mp4 = next(
+#             (f for f in reversed(formats) if f.get("ext") == "mp4" and f.get("url")),
+#             None
+#         )
+#         if not mp4:
+#             raise HTTPException(status_code=404, detail="No mp4 format found")
+
+#     video_url = mp4["url"]
+#     title = info.get("title", video_id)
+
+#     # Step 2: Stream bytes from YouTube → client (never saved to disk)
+#     async def youtube_stream():
+#         async with httpx.AsyncClient(timeout=None, follow_redirects=True) as client:
+#             async with client.stream(
+#                 "GET",
+#                 video_url,
+#                 headers={
+#                     # Must look like a real Android app request
+#                     "User-Agent": "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip",
+#                     "Range": "bytes=0-",
+#                 }
+#             ) as response:
+#                 async for chunk in response.aiter_bytes(chunk_size=1024 * 64):  # 64KB chunks
+#                     yield chunk
+
+#     # Build safe ASCII filename for header
+#     safe_title = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode("ascii")
+#     safe_title = re.sub(r'[^\w\s\-.]', '', safe_title).strip() or video_id
+#     filename = f"{safe_title}.mp4"
+#     return StreamingResponse(
+#     youtube_stream(),
+#     media_type="video/mp4",
+#     headers={
+#         "Content-Disposition": (
+#             f'attachment; filename="{filename}"; '
+#             f"filename*=UTF-8''{urllib.parse.quote(title)}.mp4"
+#         ),
+#         # Remove Content-Length completely — yt-dlp filesize is unreliable
+#         "Access-Control-Expose-Headers": "Content-Disposition",
+#     }
+# )
     cookie_path = get_cookie_file()
    
     try:
@@ -40,54 +94,48 @@ async def stream_video(video_id: str):
 
         formats = info.get("formats", [])
 
-        # Pick best mp4 format available
+        # Pick best combined MP4 format available
         mp4 = next(
             (f for f in reversed(formats)
              if f.get("ext") == "mp4" and f.get("url") and f.get("vcodec") != "none"),
             None
         )
-        # Fallback: any format with a URL
         if not mp4:
-            mp4 = next(
-                (f for f in reversed(formats) if f.get("url")),
-                None
-            )
+            mp4 = next((f for f in reversed(formats) if f.get("url")), None)
+            
         if not mp4:
             raise HTTPException(status_code=404, detail="No streamable format found")
 
         video_url = mp4["url"]
         title = info.get("title", video_id)
 
-        # Safe filename for header
+        # Build clean filenames
         normalized = unicodedata.normalize("NFKD", title)
         ascii_title = normalized.encode("ascii", "ignore").decode("ascii")
         ascii_title = re.sub(r'[^\w\s\-.]', '', ascii_title).strip() or video_id
         filename = f"{ascii_title}.mp4"
 
+        # Extract HTTP headers used by yt-dlp to pass along to httpx
+        ydl_headers = mp4.get("http_headers", {})
+
         async def youtube_stream():
-        # Disable SSL verification for HF network restrictions
-            ssl_ctx = ssl.create_default_context()
-            ssl_ctx.check_hostname = False
-            ssl_ctx.verify_mode = ssl.CERT_NONE
+            # Match the exact headers and security contexts used by yt-dlp
+            headers = {
+                "User-Agent": ydl_headers.get("User-Agent", "Mozilla/5.0 (Android 14; Mobile; rv:128.0) Gecko/128.0 Firefox/128.0"),
+                "Referer": "https://www.youtube.com/",
+                "Origin": "https://www.youtube.com",
+            }
+            
+            # If yt-dlp extracted using cookies, forward them to the stream pipeline
+            if "Cookie" in ydl_headers:
+                headers["Cookie"] = ydl_headers["Cookie"]
 
             async with httpx.AsyncClient(
                 timeout=httpx.Timeout(30.0, read=300.0),
                 follow_redirects=True,
-                verify=False,                    # ← disable SSL for httpx too
+                verify=False,
             ) as client:
-                async with client.stream(
-                    "GET",
-                    video_url,
-                    headers={
-                        "User-Agent": (
-                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                            "AppleWebKit/537.36 (KHTML, like Gecko) "
-                            "Chrome/120.0.0.0 Safari/537.36"
-                        ),
-                        "Referer": "https://www.youtube.com/",
-                        "Origin": "https://www.youtube.com",
-                    }
-                ) as response:
+                async with client.stream("GET", video_url, headers=headers) as response:
                     async for chunk in response.aiter_bytes(chunk_size=1024 * 64):
                         yield chunk
 
@@ -108,7 +156,6 @@ async def stream_video(video_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        # Clean up temp cookie file
         if cookie_path and os.path.exists(cookie_path):
             try:
                 os.remove(cookie_path)
