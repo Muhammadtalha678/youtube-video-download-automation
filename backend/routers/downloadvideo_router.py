@@ -2,6 +2,7 @@ import asyncio
 import shlex
 import threading
 import unicodedata
+import ssl
 
 from fastapi import APIRouter,HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
@@ -64,9 +65,15 @@ async def stream_video(video_id: str):
         filename = f"{ascii_title}.mp4"
 
         async def youtube_stream():
+        # Disable SSL verification for HF network restrictions
+            ssl_ctx = ssl.create_default_context()
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.CERT_NONE
+
             async with httpx.AsyncClient(
-                timeout=None,
-                follow_redirects=True
+                timeout=httpx.Timeout(30.0, read=300.0),
+                follow_redirects=True,
+                verify=False,                    # ← disable SSL for httpx too
             ) as client:
                 async with client.stream(
                     "GET",
