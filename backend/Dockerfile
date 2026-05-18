@@ -8,8 +8,11 @@ FROM python:3.12-slim
 COPY --from=node_provider /usr/local/bin/node /usr/local/bin/node
 COPY --from=node_provider /usr/local/lib/node_modules /usr/local/lib/node_modules
 
-# Ensure basic SSL certificates are available for downloading
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+# CRITICAL FIX: Install ffmpeg along with ca-certificates
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
 # install uv and copy specific file to run uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/

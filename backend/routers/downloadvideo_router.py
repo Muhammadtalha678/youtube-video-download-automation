@@ -85,6 +85,10 @@ async def stream_video(video_id: str):
    
     try:
         ydl_opts = build_ydl_opts(cookie_path)
+        
+        # FORCE single-file progressive formats containing BOTH H.264 video (avc1) and AAC audio.
+        # Format 22 is 720p MP4. Format 18 is 360p MP4.
+        ydl_opts["format"] = "22/18/best[ext=mp4][vcodec^=avc1][acodec^=mp4a]/best"
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(
@@ -94,17 +98,29 @@ async def stream_video(video_id: str):
 
         formats = info.get("formats", [])
 
-        # Pick best combined MP4 format available
+        # Filter strictly for single-file MP4s that have both video and audio
         mp4 = next(
             (f for f in reversed(formats)
-             if f.get("ext") == "mp4" and f.get("url") and f.get("vcodec") != "none"),
+             if f.get("ext") == "mp4" 
+             and f.get("url") 
+             and f.get("vcodec") != "none" 
+             and f.get("acodec") != "none"
+             and "av1" not in f.get("vcodec", "").lower()), # Avoid AV1 completely
             None
         )
+        
+        # Emergency fallback if strict rules fail
         if not mp4:
-            mp4 = next((f for f in reversed(formats) if f.get("url")), None)
+            mp4 = next(
+                (f for f in reversed(formats) 
+                 if f.get("url") 
+                 and f.get("vcodec") != "none" 
+                 and "av1" not in f.get("vcodec", "").lower()), 
+                None
+            )
             
         if not mp4:
-            raise HTTPException(status_code=404, detail="No streamable format found")
+            raise HTTPException(status_code=404, detail="No streamable H.264 format found")
 
         video_url = mp4["url"]
         title = info.get("title", video_id)
@@ -119,14 +135,12 @@ async def stream_video(video_id: str):
         ydl_headers = mp4.get("http_headers", {})
 
         async def youtube_stream():
-            # Match the exact headers and security contexts used by yt-dlp
             headers = {
                 "User-Agent": ydl_headers.get("User-Agent", "Mozilla/5.0 (Android 14; Mobile; rv:128.0) Gecko/128.0 Firefox/128.0"),
                 "Referer": "https://www.youtube.com/",
                 "Origin": "https://www.youtube.com",
             }
             
-            # If yt-dlp extracted using cookies, forward them to the stream pipeline
             if "Cookie" in ydl_headers:
                 headers["Cookie"] = ydl_headers["Cookie"]
 
