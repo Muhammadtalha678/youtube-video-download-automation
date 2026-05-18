@@ -7,3 +7,5 @@ api_key=os.getenv("api_key")
 base_url=os.getenv("base_url")
 youtube_ap_key=os.getenv("youtube_ap_key")
 frontend_url=os.getenv("frontend_url")
+
+cookie_q65533869=os.getenv("cookie_q65533869")

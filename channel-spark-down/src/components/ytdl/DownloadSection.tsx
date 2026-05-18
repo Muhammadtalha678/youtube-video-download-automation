@@ -24,8 +24,11 @@ export function DownloadSection({ selectedIds }: Props) {
     try {
 
       const handle =
-        await window.showDirectoryPicker();
-
+        await window.showDirectoryPicker({
+          mode:"readwrite"
+        });
+      console.log(handle);
+      
       setFolderHandle(handle);
       setFolderName(handle.name);
 
@@ -73,28 +76,39 @@ export function DownloadSection({ selectedIds }: Props) {
           
           console.log("response",response);
           // console.log("data",response);
-          const blob = new Blob(
-            [response.data],
-            {type:"video/mp4"}
-          )
-          // console.log("blob",blob);
-          const url = window.URL.createObjectURL(blob);
-          
-          // Extract filename from headers
-          const disposition =
-          response.headers["content-disposition"];
-          
+          // const blob = new Blob(
+            //   [response.data],
+          //   {type:"video/mp4"}
+        // )
+        const blob = response.data as Blob
+        // const url = window.URL.createObjectURL(blob);
+        
+        // Extract filename from headers
+        const disposition =
+        response.headers["content-disposition"];
+        
+        console.log("disposition",disposition);
           let filename = `${id}.mp4`;
           
           if (disposition) {
-            
-            const match =
-            disposition.match(/filename="?(.+)"?/);
-            
-            if (match?.[1]) {
-              filename = match[1];
-            }
-          }
+             const utf8Match = disposition.match(/filename\*=UTF-8''([^;\n]+)/i);
+    const asciiMatch = disposition.match(/filename="?([^";\n]+)"?/i);
+
+    if (utf8Match?.[1]) {
+        filename = decodeURIComponent(utf8Match[1].trim());
+    } else if (asciiMatch?.[1]) {
+        filename = asciiMatch[1].trim();
+    }
+    }
+    // Check folderHandle is still valid before using it
+    if (!folderHandle) {
+      throw new Error("No folder selected. Please select a download folder first.");
+    }
+    // Verify permission is still granted (can expire)
+    const permission = await folderHandle.requestPermission({ mode: "readwrite" });
+    if (permission !== "granted") {
+      throw new Error("Folder permission denied. Please re-select the folder.");
+    }
           // save directly to selected folder
           const fileHandle =
           await folderHandle.getFileHandle(
@@ -113,8 +127,17 @@ export function DownloadSection({ selectedIds }: Props) {
       }
       
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || "Download failed");
-    } finally {
+    console.error("Download error:", err);
+
+    // Distinguish between backend errors and file system errors
+    if (err?.response?.data?.detail) {
+      toast.error(`Server error: ${err.response.data.detail}`);
+    } else if (err?.name === "NotAllowedError") {
+      toast.error("Folder permission expired. Please re-select your download folder.");
+    } else {
+      toast.error(err?.message || "Download failed");
+    }
+  }finally {
       setLoading(false);
     }
   };
