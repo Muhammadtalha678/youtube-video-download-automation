@@ -32,26 +32,28 @@ def build_ydl_opts(cookie_path: str | None) -> dict:
         "nocheckcertificate": True,
         "retries": 10,
         "socket_timeout": 30,
+        
+        # REQUIRED BY THE NEW EJS ENGINE FOR NODE.JS:
+        "js_runtimes": ["node"],
+        
         "extractor_args": {
             "youtube": {
-                # Add the missing_pot flag to fetch streaming strings even if PO Tokens drop
                 "formats": ["missing_pot"],
             }
         },
     }
     
     if cookie_path:
-        # Desktop web profiles strictly need matching cookie streams
         opts["cookiefile"] = cookie_path
         opts["extractor_args"]["youtube"]["player_client"] = ["web", "tv"]
         opts["http_headers"] = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
         }
     else:
-        # NO Cookies -> Mobile streams do not require PO Tokens or account context for public clips
         opts["extractor_args"]["youtube"]["player_client"] = ["android", "ios"]
         opts["http_headers"] = {
             "User-Agent": "Mozilla/5.0 (Android 14; Mobile; rv:128.0) Gecko/128.0 Firefox/128.0"
         }
 
     return opts
+
