@@ -1,5 +1,4 @@
 import asyncio
-import base64
 import shlex
 import threading
 import unicodedata
@@ -10,6 +9,7 @@ import urllib.parse
 
 from models.pydanti_model import DownloadRequest
 from ools.filename_modif import safe_filename_for_header
+from ools.helper import build_ydl_opts, get_cookie_file
 from ools.search_youtube_video_tool import download_videos
 from yt_dlp import YoutubeDL
 import os
@@ -26,61 +26,87 @@ def download_video(req:DownloadRequest):
     
 @router.get("/download/{video_id}")
 async def stream_video(video_id: str):
-    
-    # Step 1: resolve the URL (same as before)
-    ydl_opts = {
-        "quiet": True,
-        "skip_download": True,
-        "extractor_args": {"youtube": {"player_client": ["android"]}},
-    }
+    cookie_path = get_cookie_file()
+   
+    try:
+        ydl_opts = build_ydl_opts(cookie_path)
 
-    with YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(
-            f"https://youtube.com/watch?v={video_id.strip()}",
-            download=False
-        )
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(
+                f"https://www.youtube.com/watch?v={video_id.strip()}",
+                download=False
+            )
+
         formats = info.get("formats", [])
+
+        # Pick best mp4 format available
         mp4 = next(
-            (f for f in reversed(formats) if f.get("ext") == "mp4" and f.get("url")),
+            (f for f in reversed(formats)
+             if f.get("ext") == "mp4" and f.get("url") and f.get("vcodec") != "none"),
             None
         )
+        # Fallback: any format with a URL
         if not mp4:
-            raise HTTPException(status_code=404, detail="No mp4 format found")
+            mp4 = next(
+                (f for f in reversed(formats) if f.get("url")),
+                None
+            )
+        if not mp4:
+            raise HTTPException(status_code=404, detail="No streamable format found")
 
-    video_url = mp4["url"]
-    title = info.get("title", video_id)
+        video_url = mp4["url"]
+        title = info.get("title", video_id)
 
-    # Step 2: Stream bytes from YouTube → client (never saved to disk)
-    async def youtube_stream():
-        async with httpx.AsyncClient(timeout=None, follow_redirects=True) as client:
-            async with client.stream(
-                "GET",
-                video_url,
-                headers={
-                    # Must look like a real Android app request
-                    "User-Agent": "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip",
-                    "Range": "bytes=0-",
-                }
-            ) as response:
-                async for chunk in response.aiter_bytes(chunk_size=1024 * 64):  # 64KB chunks
-                    yield chunk
+        # Safe filename for header
+        normalized = unicodedata.normalize("NFKD", title)
+        ascii_title = normalized.encode("ascii", "ignore").decode("ascii")
+        ascii_title = re.sub(r'[^\w\s\-.]', '', ascii_title).strip() or video_id
+        filename = f"{ascii_title}.mp4"
 
-    # Build safe ASCII filename for header
-    safe_title = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode("ascii")
-    safe_title = re.sub(r'[^\w\s\-.]', '', safe_title).strip() or video_id
-    filename = f"{safe_title}.mp4"
-    return StreamingResponse(
-    youtube_stream(),
-    media_type="video/mp4",
-    headers={
-        "Content-Disposition": (
-            f'attachment; filename="{filename}"; '
-            f"filename*=UTF-8''{urllib.parse.quote(title)}.mp4"
-        ),
-        # Remove Content-Length completely — yt-dlp filesize is unreliable
-        "Access-Control-Expose-Headers": "Content-Disposition",
-    }
-)
+        async def youtube_stream():
+            async with httpx.AsyncClient(
+                timeout=None,
+                follow_redirects=True
+            ) as client:
+                async with client.stream(
+                    "GET",
+                    video_url,
+                    headers={
+                        "User-Agent": (
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                            "AppleWebKit/537.36 (KHTML, like Gecko) "
+                            "Chrome/120.0.0.0 Safari/537.36"
+                        ),
+                        "Referer": "https://www.youtube.com/",
+                        "Origin": "https://www.youtube.com",
+                    }
+                ) as response:
+                    async for chunk in response.aiter_bytes(chunk_size=1024 * 64):
+                        yield chunk
+
+        return StreamingResponse(
+            youtube_stream(),
+            media_type="video/mp4",
+            headers={
+                "Content-Disposition": (
+                    f'attachment; filename="{filename}"; '
+                    f"filename*=UTF-8''{urllib.parse.quote(title)}.mp4"
+                ),
+                "Access-Control-Expose-Headers": "Content-Disposition",
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Clean up temp cookie file
+        if cookie_path and os.path.exists(cookie_path):
+            try:
+                os.remove(cookie_path)
+            except Exception:
+                pass
    
 # def download_videos(video_id:str):
 #     download_dir = "downloads"
