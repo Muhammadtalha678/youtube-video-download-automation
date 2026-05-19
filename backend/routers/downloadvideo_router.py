@@ -81,20 +81,24 @@ async def stream_video(video_id: str):
 #         "Access-Control-Expose-Headers": "Content-Disposition",
 #     }
 # )
-    cookie_path = get_cookie_file()
+    # cookie_path = get_cookie_file()
+    cookie_path = None
    
     try:
-        ydl_opts = build_ydl_opts(cookie_path)
+        ydl_opts = build_ydl_opts(cookie_path=None)
         
         # FORCE single-file progressive formats containing BOTH H.264 video (avc1) and AAC audio.
         # Format 22 is 720p MP4. Format 18 is 360p MP4.
         ydl_opts["format"] = "22/18/best[ext=mp4][vcodec^=avc1][acodec^=mp4a]/best"
-
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(
-                f"https://www.youtube.com/watch?v={video_id.strip()}",
-                download=False
-            )
+        print(ydl_opts)
+        try:
+            with YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(
+                    f"https://www.youtube.com/watch?v={video_id.strip()}",
+                    download=False
+                )
+        except Exception as e:
+            print(str(e))
 
         formats = info.get("formats", [])
 

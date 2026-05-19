@@ -49,13 +49,29 @@ export function DownloadSection({ selectedIds }: Props) {
 
   // Extract filename
   const disposition = response.headers.get("content-disposition");
-  let filename = `${id}.mp4`;
-  if (disposition) {
-    const utf8Match = disposition.match(/filename\*=UTF-8''([^;\n]+)/i);
-    const asciiMatch = disposition.match(/filename="?([^";\n]+)"?/i);
-    if (utf8Match?.[1]) filename = decodeURIComponent(utf8Match[1].trim());
-    else if (asciiMatch?.[1]) filename = asciiMatch[1].trim();
-  }
+let filename = `${id}.mp4`;
+if (disposition) {
+  const utf8Match = disposition.match(/filename\*=UTF-8''([^;\n]+)/i);
+  const asciiMatch = disposition.match(/filename="?([^";\n]+)"?/i);
+  if (utf8Match?.[1]) filename = decodeURIComponent(utf8Match[1].trim());
+  else if (asciiMatch?.[1]) filename = asciiMatch[1].trim();
+}
+// Sanitize filename — remove ALL characters not allowed by File System API
+filename = filename
+  .replace(/[<>:"/\\|?*#%&{}$!@`=+]/g, "")   // remove illegal chars
+  .replace(/[\u0000-\u001F\u007F]/g, "")        // remove control characters  
+  .replace(/\s+/g, " ")                          // collapse multiple spaces
+  .trim();
+
+// Remove trailing dots/spaces (Windows doesn't allow them)
+filename = filename.replace(/[. ]+$/, "");
+
+// Ensure it ends with .mp4
+if (!filename.endsWith(".mp4")) filename += ".mp4";
+
+
+// Fallback if everything got stripped
+if (filename === ".mp4" || filename.length < 5) filename = `${id}.mp4`;
 
   // Permission check
   const perm = await folderHandle!.requestPermission({ mode: "readwrite" });
@@ -102,6 +118,8 @@ export function DownloadSection({ selectedIds }: Props) {
       }
       toast.success(`All ${selectedIds.length} videos downloaded!`);
     } catch (err: any) {
+      console.log(err);
+      
       const msg = err?.message || "Download failed";
       setError(msg);
       if (err?.name === "NotAllowedError") {
