@@ -63,17 +63,18 @@ def build_ydl_opts(cookie_path: str | None = None) -> dict:
         "nocheckcertificate": True,
         "retries": 10,
         "socket_timeout": 30,
-        "js_runtimes": {"node": {}},
+        "js_runtimes": {"node": {}},  # Uses Node from our multi-stage Dockerfile
+        
+        "hls_prefer_native": True,    # Helps bypass Hugging Face firewall blocks
         
         "extractor_args": {
             "youtube": {
-                # Shift priority to ios/android app clients to avoid the web base.js timeout
-                "player_client": ["ios", "android", "mweb", "web"],
+                # Shift priority strictly to mobile apps to bypass web blocks
+                "player_client": ["android", "ios", "mweb", "web"],
                 "formats": ["missing_pot"]
             }
         },
         "http_headers": {
-            # Use an iOS user agent to match our client settings
             "User-Agent": "com.google.ios.youtube/19.17.2 (iPhone16,2; U; CPU OS 17_5 like Mac OS X; en_US)",
             "Accept-Language": "en-US,en;q=0.9"
         }
@@ -81,7 +82,6 @@ def build_ydl_opts(cookie_path: str | None = None) -> dict:
 
     if cookie_path:
         opts["cookiefile"] = cookie_path
-        # When cookies are present, web and tv are mandatory
         opts["extractor_args"]["youtube"]["player_client"] = ["web", "tv"]
         opts["http_headers"] = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
