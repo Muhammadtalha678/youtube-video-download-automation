@@ -52,6 +52,7 @@ dependencies = [
     { name = "openai-agents" },
     { name = "python-dotenv" },
     { name = "yt-dlp", extra = ["default"] },
+    { name = "yt-dlp-get-pot" },
 ]
 
 [package.metadata]
@@ -62,6 +63,7 @@ requires-dist = [
     { name = "openai-agents", specifier = ">=0.15.2" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "yt-dlp", extras = ["default"], specifier = ">=2026.3.17" },
+    { name = "yt-dlp-get-pot", extras = ["bgutil"], specifier = ">=0.3.0" },
 ]
 
 [[package]]
@@ -993,4 +995,13 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d3/e6/cceb9530e8f4e5940f6f7822d90e9d94f1b85343329a16baaf47bbbb3de1/yt_dlp_ejs-0.8.0.tar.gz", hash = "sha256:d5fa1639f63b5c4af8d932495f60689d5370f1a095782c944f7f62a303eb104e", size = 96571, upload-time = "2026-03-17T22:49:19.299Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e3/bd/520769863744b669440a924271a6159ddd82ad5ae26b4ac4d4b69e9f8d44/yt_dlp_ejs-0.8.0-py3-none-any.whl", hash = "sha256:79300e5fca7f937a1eeede11f0456862c1b41107ce1d726871e0207424f4bdb4", size = 53443, upload-time = "2026-03-17T22:49:17.736Z" },
+]
+
+[[package]]
+name = "yt-dlp-get-pot"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/77/6d252ce1a4aa24871e5518737016e2d1bf4d2fffc425767611964fd31fa6/yt_dlp_get_pot-0.3.0.tar.gz", hash = "sha256:ac9530b9e7b3d667235b9119da475f595d2dc7e6f6bbf98b965011be454e8833", size = 9814, upload-time = "2025-01-25T00:22:12.817Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/64/be/3e5551e12943554f66a72f6128862ea7dc11d2429abe957d6d7b5d2b463c/yt_dlp_get_pot-0.3.0-py3-none-any.whl", hash = "sha256:a49a596a3e3c02cd9ce051192ea3fe8168cf24ece8954bed6aa331a87d86954f", size = 8009, upload-time = "2025-01-25T00:22:11.495Z" },
 ]

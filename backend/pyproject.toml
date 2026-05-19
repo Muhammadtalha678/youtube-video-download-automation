@@ -10,5 +10,6 @@ dependencies = [
     "httpx>=0.28.1",
     "openai-agents>=0.15.2",
     "python-dotenv>=1.2.2",
+    "yt-dlp-get-pot[bgutil]>=0.3.0",
     "yt-dlp[default]>=2026.3.17",
 ]

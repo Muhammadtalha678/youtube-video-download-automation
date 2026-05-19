@@ -90,6 +90,7 @@ async def stream_video(video_id: str):
         # FORCE single-file progressive formats containing BOTH H.264 video (avc1) and AAC audio.
         # Format 22 is 720p MP4. Format 18 is 360p MP4.
         ydl_opts["format"] = "22/18/best[ext=mp4][vcodec^=avc1][acodec^=mp4a]/best"
+            # print("error_msg",error_msg)
         print(ydl_opts)
         try:
             with YoutubeDL(ydl_opts) as ydl:
@@ -98,7 +99,22 @@ async def stream_video(video_id: str):
                     download=False
                 )
         except Exception as e:
-            print(str(e))
+             # EMERGENCY FALLBACK: If the video is age-restricted, use your cookies file
+            error_msg = str(e).lower()
+            print("error_msg",error_msg)
+            if "sign in" in error_msg or "confirm your age" in error_msg or "private" in error_msg:
+                print("Video requires login. Falling back to cookies file safely...")
+                cookie_path = get_cookie_file() # Only decodes cookies when absolutely necessary
+                ydl_opts = build_ydl_opts(cookie_path)
+                ydl_opts["format"] = "22/18/best[ext=mp4][vcodec^=avc1][acodec^=mp4a]/best"
+                
+                with YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(
+                    f"https://www.youtube.com/watch?v={video_id.strip()}",
+                        download=False
+                    )
+            else:
+                raise e
 
         formats = info.get("formats", [])
 
