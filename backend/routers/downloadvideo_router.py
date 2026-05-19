@@ -91,7 +91,6 @@ async def stream_video(video_id: str):
         # Format 22 is 720p MP4. Format 18 is 360p MP4.
         ydl_opts["format"] = "22/18/best[ext=mp4][vcodec^=avc1][acodec^=mp4a]/best"
             # print("error_msg",error_msg)
-        print(ydl_opts)
         try:
             with YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(
@@ -116,6 +115,7 @@ async def stream_video(video_id: str):
             else:
                 raise e
 
+        print(ydl_opts)
         formats = info.get("formats", [])
 
         # Filter strictly for single-file MP4s that have both video and audio
