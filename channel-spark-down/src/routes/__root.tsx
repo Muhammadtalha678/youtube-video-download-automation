@@ -103,7 +103,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
     if (!document.getElementById("google-adsense-script")) {
       const script = document.createElement("script");
       script.id = "google-adsense-script";
-      script.src = "https://googlesyndication.com";
+      script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6513926499048019";
       script.async = true;
       script.crossOrigin = "anonymous";
       document.head.appendChild(script);
