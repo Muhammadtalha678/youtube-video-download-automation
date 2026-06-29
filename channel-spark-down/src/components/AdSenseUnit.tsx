@@ -11,7 +11,7 @@ export function AdSenseUnit() {
   }, [])
 
   return (
-    <div style={{ display: 'block', overflow: 'hidden' }}>
+    <div style={{ display: 'block', overflow: 'hidden' ,backgroundColor:"red"}}>
       {/* Google AdSense ka <ins> tag */}
       <ins 
         className="adsbygoogle"
