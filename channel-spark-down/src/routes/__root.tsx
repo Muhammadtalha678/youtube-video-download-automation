@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { useEffect } from "react";
 
 function NotFoundComponent() {
   return (
@@ -77,11 +78,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Lovable App" },
       { name: "description", content: "Lovable Generated Project" },
       { name: "author", content: "Lovable" },
+      { name: "google-adsense-account", content: "ca-pub-6513926499048019" }, // Account verification meta tag
       { property: "og:title", content: "Lovable App" },
       { property: "og:description", content: "Lovable Generated Project" },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -89,13 +89,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
     ],
-    scripts: [
-      {
-        src: "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6513926499048019",
-        async: true,
-        crossOrigin: "anonymous",
-      }
-    ]
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -104,13 +97,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
+  // 🔥 Safe Script Injection: Yeh ensure karega ke React hydrate hone ke BAAD script load ho
+  useEffect(() => {
+    // Check karein agar script pehle se add nahi hai
+    if (!document.getElementById("google-adsense-script")) {
+      const script = document.createElement("script");
+      script.id = "google-adsense-script";
+      script.src = "https://googlesyndication.com";
+      script.async = true;
+      script.crossOrigin = "anonymous";
+      document.head.appendChild(script);
+    }
+  }, []); // Sirf pehli dafa browser load par chalega
+
   return (
     <html lang="en">
       <head>
         <HeadContent />
-        <meta name="google-adsense-account" content="ca-pub-6513926499048019"></meta>
-        {/* Your custom advertising/network script */}
-     </head>
+      </head>
       <body>
         {children}
         <Scripts />
@@ -118,6 +122,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
     </html>
   );
 }
+
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
