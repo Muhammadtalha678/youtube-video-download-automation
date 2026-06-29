@@ -223,8 +223,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <meta name="google-adsense-account" content="ca-pub-6513926499048019"></meta>
         {/* Your custom advertising/network script */}
         <script src="https://pl29904220.effectivecpmnetwork.com/f3/9e/4a/f39e4aba2b0e86a06782dc6291ebfff9.js" async></script>
+     
      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6513926499048019"
-     crossorigin="anonymous"></script>
+     crossOrigin="anonymous"></script>
       </head>
       <body>
         {children}

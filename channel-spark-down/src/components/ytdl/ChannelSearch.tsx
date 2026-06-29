@@ -3,6 +3,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { Search, Loader2 } from "lucide-react";
 import { apiUrls } from "@/lib/constant";
+import { AdSenseUnit } from "../AdSenseUnit";
 
 export interface Channel {
   channel_id: string;
@@ -72,6 +73,7 @@ export function ChannelSearch({ onFound }: Props) {
         </button>
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
+      <AdSenseUnit/>
     </form>
   );
 }
